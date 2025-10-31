@@ -28,7 +28,6 @@ on:
 jobs:
   download_upload:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -72,21 +71,21 @@ jobs:
           HF_PATH: ${{ github.event.inputs.hf_path }}
         run: |
           python3 <<'PYCODE'
-import os
-from huggingface_hub import HfApi
+          import os
+          from huggingface_hub import HfApi
 
-api = HfApi()
-repo_id = os.environ["HF_REPO"]
-path_in_repo = os.environ.get("HF_PATH", "/").lstrip("/")
-folder = "downloads"
+          api = HfApi()
+          repo_id = os.environ["HF_REPO"]
+          path_in_repo = os.environ.get("HF_PATH", "/").lstrip("/")
+          folder = "downloads"
 
-print(f"Uploading '{folder}' to Hugging Face repo: {repo_id}/{path_in_repo or '(root)'}")
-api.upload_folder(
-    folder_path=folder,
-    repo_id=repo_id,
-    path_in_repo=path_in_repo,
-    repo_type="dataset",  # Change to "model" if you want to upload to a model repo
-    token=os.environ["HF_TOKEN"]
-)
-print("✅ Upload complete!")
-PYCODE
+          print(f"Uploading '{folder}' to Hugging Face repo: {repo_id}/{path_in_repo or '(root)'}")
+          api.upload_folder(
+              folder_path=folder,
+              repo_id=repo_id,
+              path_in_repo=path_in_repo,
+              repo_type="dataset",  # change to "model" if needed
+              token=os.environ["HF_TOKEN"]
+          )
+          print("✅ Upload complete!")
+          PYCODE
