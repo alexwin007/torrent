@@ -1,0 +1,92 @@
+name: Aria2 Downloader → Upload to Hugging Face
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_type:
+        description: "Choose source type (magnet or torrent)"
+        required: true
+        default: "magnet"
+        type: choice
+        options:
+          - magnet
+          - torrent
+      source_value:
+        description: "Enter magnet link or torrent file URL"
+        required: true
+        type: string
+      hf_repo:
+        description: "Target Hugging Face repo (e.g. username/my-dataset)"
+        required: true
+        type: string
+      hf_path:
+        description: "Path inside Hugging Face repo (default: /)"
+        required: false
+        default: "/"
+        type: string
+
+jobs:
+  download_upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y aria2 python3 python3-pip
+          pip install huggingface_hub
+
+      - name: Create download folder
+        run: mkdir -p downloads
+
+      - name: Handle input source
+        id: getsource
+        run: |
+          if [ "${{ github.event.inputs.source_type }}" = "magnet" ]; then
+            echo "source=${{ github.event.inputs.source_value }}" >> $GITHUB_OUTPUT
+          else
+            wget -O file.torrent "${{ github.event.inputs.source_value }}"
+            echo "source=file.torrent" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download with aria2
+        run: |
+          aria2c \
+            --seed-time=0 \
+            --max-connection-per-server=16 \
+            --split=16 \
+            --min-split-size=1M \
+            --continue=true \
+            -d downloads \
+            "${{ steps.getsource.outputs.source }}"
+          echo "Download finished!"
+          ls -R downloads
+
+      - name: Upload to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_REPO: ${{ github.event.inputs.hf_repo }}
+          HF_PATH: ${{ github.event.inputs.hf_path }}
+        run: |
+          python3 - <<'PYCODE'
+import os
+from huggingface_hub import HfApi, upload_folder
+
+api = HfApi()
+repo_id = os.environ["HF_REPO"]
+path_in_repo = os.environ.get("HF_PATH", "/").lstrip("/")
+folder = "downloads"
+
+print(f"Uploading '{folder}' to Hugging Face repo: {repo_id}/{path_in_repo or '(root)'}")
+api.upload_folder(
+    folder_path=folder,
+    repo_id=repo_id,
+    path_in_repo=path_in_repo,
+    repo_type="dataset",  # change to "model" if needed
+    token=os.environ["HF_TOKEN"]
+)
+print("✅ Upload complete!")
+PYCODE
