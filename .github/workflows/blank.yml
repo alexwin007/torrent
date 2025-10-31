@@ -1,11 +1,25 @@
-name: Download Magnet via Aria2
+name: Download via Aria2 (Torrent or Magnet)
 
 on:
-  workflow_dispatch:  # Run manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      source_type:
+        description: "Choose download source type"
+        required: true
+        default: "magnet"
+        type: choice
+        options:
+          - magnet
+          - torrent
+      source_value:
+        description: "Enter magnet link or torrent file URL"
+        required: true
+        type: string
 
 jobs:
   download:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -13,19 +27,39 @@ jobs:
       - name: Install aria2
         run: sudo apt update && sudo apt install -y aria2
 
-      - name: Download from magnet link
+      - name: Create download folder
+        run: mkdir -p downloads
+
+      - name: Handle input source
+        id: getsource
         run: |
-          mkdir -p downloads
-          MAGNET_LINK="magnet:?xt=urn:btih:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-          echo "Downloading..."
+          if [ "${{ github.event.inputs.source_type }}" = "magnet" ]; then
+            echo "Using magnet link..."
+            echo "source=${{ github.event.inputs.source_value }}" >> $GITHUB_OUTPUT
+          else
+            echo "Downloading .torrent file..."
+            wget -O https://file.onejav.com/torrents/8b289ea16d40423894037dee50dedcbc5619c203/94328280/onejav.com_fc2ppv4788732.torrent "${{ github.event.inputs.source_value }}"
+            echo "source=file.torrent" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download using aria2
+        run: |
+          echo "Downloading with aria2..."
           aria2c \
             --seed-time=0 \
             --max-connection-per-server=16 \
             --split=16 \
             --min-split-size=1M \
             --continue=true \
+            --summary-interval=10 \
             -d downloads \
-            "$MAGNET_LINK"
+            "${{ steps.getsource.outputs.source }}"
 
       - name: List downloaded files
         run: ls -R downloads
+
+      - name: Upload downloaded files as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aria2-download
+          path: downloads
