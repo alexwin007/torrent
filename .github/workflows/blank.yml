@@ -1,0 +1,31 @@
+name: Download Magnet via Aria2
+
+on:
+  workflow_dispatch:  # Run manually from the Actions tab
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install aria2
+        run: sudo apt update && sudo apt install -y aria2
+
+      - name: Download from magnet link
+        run: |
+          mkdir -p downloads
+          MAGNET_LINK="magnet:?xt=urn:btih:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+          echo "Downloading..."
+          aria2c \
+            --seed-time=0 \
+            --max-connection-per-server=16 \
+            --split=16 \
+            --min-split-size=1M \
+            --continue=true \
+            -d downloads \
+            "$MAGNET_LINK"
+
+      - name: List downloaded files
+        run: ls -R downloads
