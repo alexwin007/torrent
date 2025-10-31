@@ -71,9 +71,9 @@ jobs:
           HF_REPO: ${{ github.event.inputs.hf_repo }}
           HF_PATH: ${{ github.event.inputs.hf_path }}
         run: |
-          python3 - <<'PYCODE'
+          python3 <<'PYCODE'
 import os
-from huggingface_hub import HfApi, upload_folder
+from huggingface_hub import HfApi
 
 api = HfApi()
 repo_id = os.environ["HF_REPO"]
@@ -85,7 +85,7 @@ api.upload_folder(
     folder_path=folder,
     repo_id=repo_id,
     path_in_repo=path_in_repo,
-    repo_type="dataset",  # change to "model" if needed
+    repo_type="dataset",  # Change to "model" if you want to upload to a model repo
     token=os.environ["HF_TOKEN"]
 )
 print("✅ Upload complete!")
