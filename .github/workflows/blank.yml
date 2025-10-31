@@ -38,7 +38,7 @@ jobs:
             echo "source=${{ github.event.inputs.source_value }}" >> $GITHUB_OUTPUT
           else
             echo "Downloading .torrent file..."
-            wget -O https://file.onejav.com/torrents/8b289ea16d40423894037dee50dedcbc5619c203/94328280/onejav.com_fc2ppv4788732.torrent "${{ github.event.inputs.source_value }}"
+            wget -O file.torrent "${{ github.event.inputs.source_value }}"
             echo "source=file.torrent" >> $GITHUB_OUTPUT
           fi
 
